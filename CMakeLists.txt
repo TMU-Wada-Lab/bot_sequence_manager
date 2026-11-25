@@ -29,11 +29,21 @@ target_include_directories(seqmgr_core PUBLIC
   ${PROJECT_SOURCE_DIR}/include/bot_sequence_manager
   ${BOT_SYSTEM_DEF_DIR})
 
-# 単体テスト
+# テスト用の偽 Task_provider（中身）
+add_library(fake_tp_core STATIC tools/fake_task_provider/FakeTaskProvider.cpp)
+target_include_directories(fake_tp_core PUBLIC
+  ${PROJECT_SOURCE_DIR}/tools/fake_task_provider
+  ${BOT_SYSTEM_DEF_DIR})
+
+# 単体テスト・結合テスト
 enable_testing()
 add_executable(sequence_engine_test test/sequence_engine_test.cpp)
 target_link_libraries(sequence_engine_test seqmgr_core)
 add_test(NAME sequence_engine_test COMMAND sequence_engine_test)
+
+add_executable(integration_test test/integration_test.cpp)
+target_link_libraries(integration_test seqmgr_core fake_tp_core)
+add_test(NAME integration_test COMMAND integration_test)
 
 # RTC 本体
 if(BUILD_RTC)
@@ -59,4 +69,10 @@ if(BUILD_RTC)
     target_link_libraries(${t} seqmgr_core ${OPENRTM_LIBRARIES})
   endforeach()
   set_target_properties(bot_sequence_manager PROPERTIES PREFIX "")
+
+  # テスト用の偽 Task_provider RTC
+  add_executable(fake_task_providerComp tools/fake_task_provider/fake_task_provider.cpp)
+  target_include_directories(fake_task_providerComp PRIVATE ${OPENRTM_INCLUDE_DIRS})
+  target_compile_options(fake_task_providerComp PRIVATE ${OPENRTM_CFLAGS})
+  target_link_libraries(fake_task_providerComp fake_tp_core ${OPENRTM_LIBRARIES})
 endif()

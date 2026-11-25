@@ -85,6 +85,49 @@ CSV の読み込みとシーケンスの状態遷移を、OpenRTM なしで確�
 
 OpenRTM のない PC では `-DBUILD_RTC=OFF` を付けるとテストだけビルドできます。
 
+結合テスト（CSV管理のロジック ⇄ 偽の Task_provider を、時間を進めながらつないで動かす）もあります。
+
+```powershell
+.\build\Release\integration_test.exe         # PREPARE→NORMAL、PAUSE/RESUME、失敗からの復旧、非常停止（2 台）
+```
+
+## 偽の Task_provider でつないで試す
+
+本物の Task_provider・GUI がなくても、RTC 同士をつないで CSV管理を試せます。
+
+| 道具 | 中身 |
+|---|---|
+| `fake_task_providerComp.exe` | 偽の Task_provider。受けたコマンドを「実行中 → `step_time_ms` 後に完了」としてシステム状態を返す。PAUSE・ESTOP・CLEAR_ERROR・原点出しの流れもまねる |
+| `tools/gui_stub.py` | GUI の代わり。START_SEQUENCE → PAUSE → RESUME を送り、シーケンス状態の変化を表示する |
+
+```powershell
+# 1. ネームサーバー（rtm-naming.bat など）を起動しておく
+# 2. この 2 つを起動
+.\build\Release\bot_sequence_managerComp.exe -f rtc.conf
+.\build\Release\fake_task_providerComp.exe -f rtc.conf
+# 3. つないでアクティブにする（rtshell）
+$H = "/localhost:2809/$(hostname).host_cxt"
+rtcon $H/bot_sequence_manager0.rtc:cmd $H/fake_task_provider0.rtc:cmd
+rtcon $H/fake_task_provider0.rtc:sys_state $H/bot_sequence_manager0.rtc:sys_state
+rtact $H/bot_sequence_manager0.rtc $H/fake_task_provider0.rtc
+# 4. GUI の代わりを動かす（ポートの接続は自動）
+python tools\gui_stub.py
+```
+
+偽の Task_provider の設定（RTSystemEditor の Configuration で変えられる）：
+
+| パラメーター | 既定値 | 内容 |
+|---|---|---|
+| `bot_ids` | `1` | 登録済みの Bot（`1,2` のようにカンマ区切り） |
+| `initial_state` | `1` | 起動時の主状態（0 未準備／1 待機） |
+| `step_time_ms` | `2000` | コマンドが完了するまでの時間 |
+| `fail_command` | `-1` | 1 回だけ失敗させるコマンド番号（例：9＝EXCHANGE、-1 で失敗させない） |
+| `fail_mode` | `1` | 1 失敗（FAILED）／2 拒否（REJECTED） |
+| `fail_code` | `1` | 失敗なら ERROR_CODE、拒否なら REJECT_REASON |
+| `fail_resumable` | `1` | 失敗したときの再開可否 |
+
+※ rtshell の `rtinject`・`rtprint` は、Python 3.11 以降では動きません（`inspect.getargspec` が削除されたため）。データの送受信を試すときは `gui_stub.py` を使ってください。`rtcon`・`rtact`・`rtls` は動きます。
+
 ## 起動
 
 このフォルダ（`rtc.conf` がある場所）から起動します。CSV のパスは起動したフォルダからの相対パスです。
