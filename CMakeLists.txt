@@ -72,7 +72,8 @@ if(BUILD_RTC)
 
   # テスト用の偽 Task_provider RTC
   add_executable(fake_task_providerComp tools/fake_task_provider/fake_task_provider.cpp)
-  target_include_directories(fake_task_providerComp PRIVATE ${OPENRTM_INCLUDE_DIRS})
+  target_include_directories(fake_task_providerComp PRIVATE ${OPENRTM_INCLUDE_DIRS}
+    ${PROJECT_SOURCE_DIR}/include/bot_sequence_manager)
   target_compile_options(fake_task_providerComp PRIVATE ${OPENRTM_CFLAGS})
   target_link_libraries(fake_task_providerComp fake_tp_core ${OPENRTM_LIBRARIES})
 endif()

@@ -9,6 +9,7 @@
 #include <iostream>
 
 #include "bot_sequence_manager.h"
+#include "launch_dir.h"  // windows.h を含むので最後に置く
 
 void MyModuleInit(RTC::Manager* manager) {
     bot_sequence_managerInit(manager);
@@ -20,7 +21,10 @@ void MyModuleInit(RTC::Manager* manager) {
 }
 
 int main(int argc, char** argv) {
-    RTC::Manager* manager = RTC::Manager::init(argc, argv);
+    // ダブルクリックで起動しても rtc.conf・CSV を読めるよう、起動フォルダを整える
+    std::vector<std::string> args;
+    std::vector<char*> av = launch_dir::prepare(argc, argv, "bot_sequence_manager", args);
+    RTC::Manager* manager = RTC::Manager::init(static_cast<int>(av.size()) - 1, av.data());
     manager->setModuleInitProc(MyModuleInit);
     manager->activateManager();
     manager->runManager();

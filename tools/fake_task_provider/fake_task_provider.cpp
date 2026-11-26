@@ -21,6 +21,7 @@
 #include <string>
 
 #include "FakeTaskProvider.h"
+#include "launch_dir.h"  // windows.h を含むので最後に置く
 
 // clang-format off
 static const char* const fake_task_provider_spec[] =
@@ -149,7 +150,10 @@ static void ModuleInit(RTC::Manager* manager) {
 }
 
 int main(int argc, char** argv) {
-    RTC::Manager* manager = RTC::Manager::init(argc, argv);
+    // ダブルクリックで起動しても rtc.conf・CSV を読めるよう、起動フォルダを整える
+    std::vector<std::string> args;
+    std::vector<char*> av = launch_dir::prepare(argc, argv, "fake_task_provider", args);
+    RTC::Manager* manager = RTC::Manager::init(static_cast<int>(av.size()) - 1, av.data());
     manager->setModuleInitProc(ModuleInit);
     manager->activateManager();
     manager->runManager();
