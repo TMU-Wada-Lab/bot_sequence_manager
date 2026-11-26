@@ -89,6 +89,12 @@ inline std::string to_utf8(const native_string& s) { return s; }
  * @param args 戻り値の char* が指す文字列の置き場所（main が終わるまで生かしておく）
  */
 inline std::vector<char*> prepare(int argc, char** argv, const char* tag, std::vector<std::string>& args) {
+#ifdef _WIN32
+    // 文字列は UTF-8（/utf-8 でビルド）。ダブルクリックで開くコンソールは Shift_JIS（932）なので、
+    // そのままだと日本語が化ける。このプロセスのコンソールを UTF-8 表示にする。
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+#endif
     args.assign(argv, argv + argc);
     bool has_conf = false;
     for (int i = 1; i < argc; ++i) {
